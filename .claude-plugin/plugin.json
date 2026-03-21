@@ -1,0 +1,8 @@
+{
+  "name": "nb",
+  "version": "1.0.0",
+  "description": "AI image generation via Gemini — prompt enhancement, multi-ref, transparency, cost tracking",
+  "author": { "name": "Alexandre Bouchez" },
+  "skills": "./skills",
+  "commands": "./commands"
+}
