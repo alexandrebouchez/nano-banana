@@ -5,6 +5,8 @@
   "owner": {
     "name": "Alexandre Bouchez"
   },
+  "repository": "https://github.com/alexandrebouchez/nano-banana",
+  "license": "MIT",
   "plugins": [
     {
       "name": "nb",
