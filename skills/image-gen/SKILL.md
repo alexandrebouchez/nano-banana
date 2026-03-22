@@ -1,6 +1,6 @@
 ---
 name: image-gen
-description: This skill should be used when the user asks to generate, create, design, illustrate, or make an image, visual, icon, logo, banner, mockup, screenshot, or any visual asset. Also triggers on "transparent", "sans fond", "detour", "style transfer", "reference image", "consistant", "character consistency". Covers text-to-image generation, transparency via difference matting, multi-reference style transfer, and character consistency.
+description: This skill should be used when the user asks to generate, create, design, illustrate, or make an image, visual, icon, logo, banner, mockup, screenshot, or any visual asset. Also triggers on "transparent", "sans fond", "detour", "style transfer", "reference image", "consistent", "consistant", "character consistency". Covers text-to-image generation, transparency via difference matting, multi-reference style transfer, and character consistency.
 ---
 
 # Image Generation
@@ -53,8 +53,35 @@ Save images in a contextually appropriate location:
 
 ## Prompt Enhancement
 
-Enhancement is active by default. It uses the Subject-Context-Style framework to enrich prompts automatically. Skip with `--no-enhance` if the user provides a very detailed prompt.
+Enhancement is active by default. It uses the Subject-Context-Style framework to enrich prompts.
 
-Consult `references/prompt-framework.md` for the full framework.
-Consult `references/model-selection.md` for detailed model comparison.
-Consult `references/multi-ref-guide.md` for multi-reference and character consistency patterns.
+**When to skip** (`--no-enhance`):
+- User provides a detailed prompt (100+ words)
+- User is iterating on a specific detail
+- User wants exact literal prompt without enrichment
+
+**Note**: Flash struggles with text rendering in images. If the prompt requires precise text (logos, UI with labels), use `--model pro`.
+
+## Session State & Iteration
+
+Every generation updates `~/.nano-banana/state.json` with the last image path. This enables natural conversational editing:
+
+1. Generate: `generate.mjs "a dashboard"` → saves as "last"
+2. Edit: `edit.mjs last "make it darker"` → reads last image, edits, updates "last"
+3. Iterate: `edit.mjs last "add a shadow"` → chains edits naturally
+
+**Cost tracking**: Every generation logs to `~/.nano-banana/costs.json`. Use `scripts/costs.mjs` to see totals. Transparency costs ~2x (two API calls).
+
+## Supported Image Formats
+
+Reference images (`--ref`) support: PNG, JPEG, WebP, GIF. Max recommended size: 10MB.
+
+## Error Handling
+
+If the model refuses (content policy), the script outputs the model's text response to stderr. In that case: reword the prompt, try a different description, or ask the user to rephrase.
+
+## References
+
+Consult `references/prompt-framework.md` for the full Subject-Context-Style framework.
+Consult `references/model-selection.md` for detailed model comparison and pricing.
+Consult `references/multi-ref-guide.md` for multi-reference images and character consistency.

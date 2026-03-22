@@ -11,40 +11,40 @@ import { extractAlpha } from '../lib/alpha.mjs';
 import { logCost } from '../lib/costs.mjs';
 import { updateState } from '../lib/state.mjs';
 
+const args = parseArgs();
+const rawPrompt = args._[0];
+
+if (!rawPrompt) {
+  process.stderr.write('Usage: transparent.mjs "prompt" [--model flash|pro] [--aspect 1:1] [--size 512|1K|2K|4K] [--output path] [--ref path ...]\n');
+  process.exit(1);
+}
+
+// Resolve model
+const modelKey = MODEL_ALIASES[args.model || DEFAULT_MODEL] || DEFAULT_MODEL;
+const modelConfig = MODELS[modelKey];
+if (!modelConfig) {
+  process.stderr.write(`ERROR: Unknown model "${args.model}". Available: ${Object.keys(MODELS).join(', ')}\n`);
+  process.exit(1);
+}
+
+// Resolution and aspect
+const resolution = RESOLUTIONS[args.size || DEFAULT_RESOLUTION] || RESOLUTIONS[DEFAULT_RESOLUTION];
+const aspectRatio = args.aspect || '1:1';
+
+// Load reference images
+const refPaths = args.ref || [];
+const refImages = refPaths.length > 0 ? loadMultipleImages(refPaths) : [];
+
+const client = getClient();
+const ts = Date.now();
+const tempDir = tmpdir();
+const whitePath = join(tempDir, `temp-white-${ts}.png`);
+const blackPath = join(tempDir, `temp-black-${ts}.png`);
+
+let totalInputTokens = 0;
+let totalOutputTokens = 0;
+
 try {
-  const args = parseArgs();
-  const rawPrompt = args._[0];
-
-  if (!rawPrompt) {
-    process.stderr.write('Usage: transparent.mjs "prompt" [--model flash|pro] [--aspect 1:1] [--size 1K] [--output path] [--ref path ...]\n');
-    process.exit(1);
-  }
-
-  // Resolve model
-  const modelKey = MODEL_ALIASES[args.model || DEFAULT_MODEL] || DEFAULT_MODEL;
-  const modelConfig = MODELS[modelKey];
-  if (!modelConfig) {
-    process.stderr.write(`ERROR: Unknown model "${args.model}". Available: ${Object.keys(MODELS).join(', ')}\n`);
-    process.exit(1);
-  }
-
-  // Resolution and aspect
-  const resolution = RESOLUTIONS[args.size || DEFAULT_RESOLUTION] || RESOLUTIONS[DEFAULT_RESOLUTION];
-  const aspectRatio = args.aspect || '1:1';
-
-  // Load reference images
-  const refPaths = args.ref || [];
-  const refImages = refPaths.length > 0 ? loadMultipleImages(refPaths) : [];
-
-  const client = getClient();
-  const ts = Date.now();
-  const tempDir = tmpdir();
-  const whitePath = join(tempDir, `temp-white-${ts}.png`);
-  const blackPath = join(tempDir, `temp-black-${ts}.png`);
-
-  let totalInputTokens = 0;
-  let totalOutputTokens = 0;
-
   // --- Pass 1: Generate on white background ---
   const whitePrompt = `${rawPrompt} on a pure solid white #FFFFFF background`;
   const whiteParts = buildContentParts(whitePrompt, refImages);
@@ -67,8 +67,7 @@ try {
     }
   }
   if (!whiteImagePart) {
-    process.stderr.write('ERROR: No image in white-background response\n');
-    process.exit(1);
+    throw new Error('No image in white-background response');
   }
   writeFileSync(whitePath, Buffer.from(whiteImagePart.inlineData.data, 'base64'));
   totalInputTokens += whiteResponse.usageMetadata?.promptTokenCount || 0;
@@ -87,6 +86,7 @@ try {
     contents: [{ role: 'user', parts: editParts }],
     config: {
       responseModalities: ['TEXT', 'IMAGE'],
+      imageGenerationConfig: { imageSize: resolution, aspectRatio },
     },
   });
 
@@ -99,8 +99,7 @@ try {
     }
   }
   if (!blackImagePart) {
-    process.stderr.write('ERROR: No image in black-background response\n');
-    process.exit(1);
+    throw new Error('No image in black-background response');
   }
   writeFileSync(blackPath, Buffer.from(blackImagePart.inlineData.data, 'base64'));
   totalInputTokens += blackResponse.usageMetadata?.promptTokenCount || 0;
@@ -110,10 +109,6 @@ try {
   const outputPath = resolve(args.output || `nano-transparent-${ts}.png`);
   mkdirSync(dirname(outputPath), { recursive: true });
   await extractAlpha(whitePath, blackPath, outputPath);
-
-  // Cleanup temp files
-  try { unlinkSync(whitePath); } catch {}
-  try { unlinkSync(blackPath); } catch {}
 
   // Cost tracking (sum of both passes)
   const totalCost = logCost(modelKey, resolution, totalInputTokens, totalOutputTokens, rawPrompt);
@@ -131,4 +126,8 @@ try {
 } catch (err) {
   process.stderr.write(`ERROR: ${err.message}\n`);
   process.exit(1);
+} finally {
+  // Always cleanup temp files
+  try { unlinkSync(whitePath); } catch {}
+  try { unlinkSync(blackPath); } catch {}
 }

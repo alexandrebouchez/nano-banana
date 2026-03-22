@@ -111,7 +111,7 @@ try {
     lastModel: modelKey,
   };
   if (args.consistent) {
-    stateUpdate.characterDescription = prompt;
+    stateUpdate.characterDescription = rawPrompt;
   }
   updateState(stateUpdate);
 
