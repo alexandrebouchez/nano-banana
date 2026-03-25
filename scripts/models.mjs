@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { MODELS, MODEL_ALIASES, DEFAULT_MODEL, ENHANCE_MODEL } from '../lib/config.mjs';
+import { MODELS, MODEL_ALIASES, DEFAULT_MODEL, ENHANCE_MODEL, REVERSE_MODEL } from '../lib/config.mjs';
 
 try {
   const lines = ['Available models:'];
@@ -19,6 +19,7 @@ try {
 
   lines.push('');
   lines.push(`Enhancement model: ${ENHANCE_MODEL} (text-only, used for prompt enrichment)`);
+  lines.push(`Reverse model: ${REVERSE_MODEL} (vision, used for image→prompt)`);
 
   process.stdout.write(`${lines.join('\n')}\n`);
 } catch (err) {

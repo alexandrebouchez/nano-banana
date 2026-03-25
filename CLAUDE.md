@@ -4,8 +4,8 @@ Claude Code plugin for AI image generation via Google Gemini (Nano Banana 2 / Pr
 
 ## Structure
 
-- `lib/` — Shared modules (config, client, args, prompt enhancement, alpha extraction, state, costs, image loading)
-- `scripts/` — CLI scripts called by commands and skills (generate, edit, transparent, enhance, costs, models, validate)
+- `lib/` — Shared modules (config, client, args, prompt enhancement, reverse engineering, alpha extraction, state, costs, image loading)
+- `scripts/` — CLI scripts called by commands and skills (generate, edit, transparent, enhance, reverse, costs, models, validate)
 - `skills/` — Auto-activating skills with SKILL.md + references/
 - `commands/` — Slash commands (.md with YAML frontmatter)
 - `hooks/` — SessionStart validation hook
@@ -26,7 +26,8 @@ Uses `@google/genai` SDK. Image generation via `models.generateContent()` with `
 
 - Image config key is `imageGenerationConfig` (NOT `imageConfig`) inside `config: {}`
 - Model IDs: `gemini-3.1-flash-image-preview` (flash), `gemini-3-pro-image-preview` (pro)
-- Prompt enhancement uses `gemini-2.5-flash` (text-only, cheap)
+- Prompt enhancement and reverse engineering use `gemini-3.1-flash-lite-preview` (text/vision, cheap)
+- Reverse engineering uses vision input + text-only output (no `responseModalities` needed)
 - `imageSize` accepts: `512x512`, `1024x1024`, `2048x2048`, `4096x4096`
 - Response images are in `response.candidates[0].content.parts[]` where `part.inlineData.mimeType` starts with `image/`
 - Token counts in `response.usageMetadata.promptTokenCount` and `candidatesTokenCount`
